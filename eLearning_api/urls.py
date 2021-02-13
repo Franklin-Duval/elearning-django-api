@@ -16,6 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls import url
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from django.conf import settings
 from django.conf.urls.static import static
@@ -26,8 +27,11 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api/', include('elearning_app.urls')),
+    path('api/token', TokenObtainPairView.as_view()),
+    path('api/token/refresh', TokenRefreshView.as_view()),
     path('', views.root),
-    url(r'^[a-zA-Z0-9/,;:!\\*-+^$ù&é(-è_çà)]+/$', views.errorPage)
+    
+    #url(r'^[a-zA-Z0-9/,;:!\\*-+^$ù&é(-è_çà)]+/$', views.errorPage)
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

@@ -53,6 +53,7 @@ class CourseSerializer(serializers.HyperlinkedModelSerializer):
             'validated',
             'subject',
             'level',
+            'author',
         ]
 
 class ExamSerializer(serializers.HyperlinkedModelSerializer):

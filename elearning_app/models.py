@@ -39,11 +39,11 @@ class Users(User):
         Extends Django User model to enrich default model
     """
     TYPE = (
-        (1, 'Elève'),
-        (2, 'Enseignant')
+        ('Elève', 'Elève'),
+        ('Enseignant', 'Enseignant')
     )
     telephone = models.CharField(max_length=20, null=False, unique=True)
-    type = models.IntegerField(choices=TYPE)
+    type = models.CharField(max_length=15, choices=TYPE)
     favoris = models.TextField(null=True)
 
     def __str__(self):
@@ -67,6 +67,7 @@ class Course(models.Model):
     number_comments = models.IntegerField(null=False, default=0)
     subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True)
     level = models.ForeignKey(Classe, on_delete=models.SET_NULL, null=True)
+    author = models.ForeignKey(Users, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
         return self.title + " " + self.level.name

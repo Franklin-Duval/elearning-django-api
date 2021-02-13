@@ -3,6 +3,7 @@ from django.shortcuts import redirect
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 
@@ -16,6 +17,8 @@ class ClasseViewSet(viewsets.ModelViewSet):
     """
     queryset = Classe.objects.all()
     serializer_class = ClasseSerializer
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['name', 'abbrev']
 
 class SubjectViewSet(viewsets.ModelViewSet):
     """
@@ -23,6 +26,8 @@ class SubjectViewSet(viewsets.ModelViewSet):
     """
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['name', 'description']
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -30,16 +35,18 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = Users.objects.all()
     serializer_class = UserSerializer
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['email', 'username', 'first_name', 'last_name', 'date_joined', 'telephone', 'type', 'favoris']
 
 class CourseViewSet(viewsets.ModelViewSet):
     """
         API endpoint that allows courses to be viewed or modified
-    """
-    """ authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated] """
-    
+    """    
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['title', 'keywords', 'upload_date', 'update_date', 'validated', 'subject__name', 'subject__description', 'level__name', 'author__first_name', 'author__last_name']
+
 
 class ExamViewSet(viewsets.ModelViewSet):
     """
@@ -47,6 +54,9 @@ class ExamViewSet(viewsets.ModelViewSet):
     """
     queryset = Exam.objects.all()
     serializer_class = ExamSerializer
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['id', 'course__id', 'course__title', 'course__keywords']
+
 
 class CommentViewSet(viewsets.ModelViewSet):
     """
@@ -54,6 +64,8 @@ class CommentViewSet(viewsets.ModelViewSet):
     """
     queryset = Comments.objects.all()
     serializer_class = CommentSerializer
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['user__email', 'user__username', 'user__first_name', 'user__last_name', 'comment', 'date', 'course__title']
 
 class InscriptionViewSet(viewsets.ModelViewSet):
     """
@@ -61,6 +73,174 @@ class InscriptionViewSet(viewsets.ModelViewSet):
     """
     queryset = Inscription.objects.all()
     serializer_class = InscriptionSerializer
+
+
+@api_view(['GET'])
+def getFreeCourses(request):
+    """
+        API endpoint to allow users get 5 free courses
+    """
+    courses = Course.objects.all()
+    courses = courses[: 5]
+
+    serializer_context = {
+        'request': request,
+    }
+
+    serializer = CourseSerializer(courses, many=True, context=serializer_context)
+    result = {
+        "status" : "SUCCESS",
+        "result" : serializer.data
+    }
+    return Response(result, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def getCommentCourse(request, pk):
+    """
+        API endpoint to get comments of a Course
+    """
+    course = Course.objects.get(id = pk)
+    comments = Comments.objects.filter(course = course)
+
+    serializer_context = {
+        'request': request,
+    }
+
+    serializer = CommentSerializer(comments, many=True, context=serializer_context)
+    result = {
+        "status" : "SUCCESS",
+        "result" : serializer.data
+    }
+    return Response(result, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def getExamCourse(request, pk):
+    """
+        API endpoint to get exams of a Course
+    """
+    course = Course.objects.get(id = pk)
+    exams = Exam.objects.filter(course = course)
+
+    serializer_context = {
+        'request': request,
+    }
+
+    serializer = ExamSerializer(exams, many=True, context=serializer_context)
+    result = {
+        "status" : "SUCCESS",
+        "result" : serializer.data
+    }
+    return Response(result, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def getCourses(request):
+    """
+        API endpoint to all Courses of the platform
+    """
+    course = Course.objects.filter(validated = True)
+
+    serializer_context = {
+        'request': request,
+    }
+
+    serializer = CourseSerializer(course, many=True, context=serializer_context)
+    serialize_course = serializer.data
+
+    for course in serialize_course:
+        
+        if course["author"]:
+            author = course["author"]
+            id = author[author.find('user')+4: ]
+            id = int(id.replace("/", ""))
+
+            author = Users.objects.get(id = id)
+            serializer_author = UserSerializer(author)
+
+            course["author"] = serializer_author.data
+
+        if course["level"]:
+            level = course["level"]
+            id = level[level.find('classe')+6: ]
+            id = int(id.replace("/", ""))
+
+            level = Classe.objects.get(id = id)
+            serializer_level = ClasseSerializer(level)
+
+            course["level"] = serializer_level.data
+        
+        if course["subject"]:
+            subject = course["subject"]
+            id = subject[subject.find('subject')+7: ]
+            id = int(id.replace("/", ""))
+
+            subject = Subject.objects.get(id = id)
+            serializer_subject = SubjectSerializer(subject)
+
+            course["subject"] = serializer_subject.data
+        
+    result = {
+        "status" : "SUCCESS",
+        "result" : serialize_course
+    }
+    return Response(result, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def getCourse(request, pk):
+    """
+        API endpoint to a particular course of the platform
+    """
+    course = None
+    try:
+        course = Course.objects.get(id = pk, validated = True)
+    except:
+        result = {
+            "status": "FAILURE",
+            "message": "No corresponding course"
+        }
+        return Response(result, status=status.HTTP_200_OK)
+
+    serializer_context = {
+        'request': request,
+    }
+
+    serializer = CourseSerializer(course, context=serializer_context)
+    serialize_course = serializer.data
+        
+    if serialize_course["author"]:
+        author = serialize_course["author"]
+        id = author[author.find('user')+4: ]
+        id = int(id.replace("/", ""))
+
+        author = Users.objects.get(id = id)
+        serializer_author = UserSerializer(author)
+
+        serialize_course["author"] = serializer_author.data
+
+    if serialize_course["level"]:
+        level = serialize_course["level"]
+        id = level[level.find('classe')+6: ]
+        id = int(id.replace("/", ""))
+
+        level = Classe.objects.get(id = id)
+        serializer_level = ClasseSerializer(level)
+
+        serialize_course["level"] = serializer_level.data
+    
+    if serialize_course["subject"]:
+        subject = serialize_course["subject"]
+        id = subject[subject.find('subject')+7: ]
+        id = int(id.replace("/", ""))
+
+        subject = Subject.objects.get(id = id)
+        serializer_subject = SubjectSerializer(subject)
+
+        serialize_course["subject"] = serializer_subject.data
+        
+    result = {
+        "status" : "SUCCESS",
+        "result" : serialize_course
+    }
+    return Response(result, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
