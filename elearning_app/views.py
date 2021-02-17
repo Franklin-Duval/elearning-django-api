@@ -4,6 +4,7 @@ from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 
@@ -17,7 +18,8 @@ class ClasseViewSet(viewsets.ModelViewSet):
     """
     queryset = Classe.objects.all()
     serializer_class = ClasseSerializer
-    filter_backends = [SearchFilter, OrderingFilter]
+    filter_backends = [SearchFilter, OrderingFilter, DjangoFilterBackend]
+    filterset_fields = ['name', 'abbrev']
     search_fields = ['name', 'abbrev']
 
 class SubjectViewSet(viewsets.ModelViewSet):
@@ -26,7 +28,8 @@ class SubjectViewSet(viewsets.ModelViewSet):
     """
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
-    filter_backends = [SearchFilter, OrderingFilter]
+    filter_backends = [SearchFilter, OrderingFilter, DjangoFilterBackend]
+    filterset_fields = ['name', 'description']
     search_fields = ['name', 'description']
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -35,8 +38,26 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     queryset = Users.objects.all()
     serializer_class = UserSerializer
-    filter_backends = [SearchFilter, OrderingFilter]
+    filter_backends = [SearchFilter, OrderingFilter, DjangoFilterBackend]
+    filterset_fields = ['email', 'username', 'first_name', 'last_name', 'date_joined', 'telephone', 'type']
     search_fields = ['email', 'username', 'first_name', 'last_name', 'date_joined', 'telephone', 'type', 'favoris']
+
+    def create(self, request, *args, **kwargs):
+
+        user = Users.objects.create(
+            email = request.data["email"],
+            username = request.data["username"],
+            first_name = request.data["first_name"],
+            last_name = request.data["last_name"],
+            telephone = request.data["telephone"],
+            type = request.data["type"],
+            favoris = request.data["favoris"],
+        )
+        user.set_password(request.data["password"])
+        user.save()
+
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
 
 class CourseViewSet(viewsets.ModelViewSet):
     """
@@ -44,8 +65,9 @@ class CourseViewSet(viewsets.ModelViewSet):
     """    
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    filter_backends = [SearchFilter, OrderingFilter]
-    search_fields = ['title', 'keywords', 'upload_date', 'update_date', 'validated', 'subject__name', 'subject__description', 'level__name', 'author__first_name', 'author__last_name']
+    filter_backends = [SearchFilter, OrderingFilter, DjangoFilterBackend]
+    filterset_fields = ['title', 'keywords', 'upload_date', 'update_date', 'validated', 'subject', 'level', 'author']
+    search_fields = ['title', 'keywords', 'upload_date', 'update_date', 'validated', 'subject__name', 'subject__description', 'level__name', 'level__abbrev', 'author__first_name', 'author__last_name']
 
 
 class ExamViewSet(viewsets.ModelViewSet):
@@ -135,7 +157,7 @@ def getExamCourse(request, pk):
 @api_view(['GET'])
 def getCourses(request):
     """
-        API endpoint to all Courses of the platform
+        API endpoint to all validated courses of the platform
     """
     course = Course.objects.filter(validated = True)
 
@@ -180,6 +202,7 @@ def getCourses(request):
         
     result = {
         "status" : "SUCCESS",
+        "count": len(serialize_course),
         "result" : serialize_course
     }
     return Response(result, status=status.HTTP_200_OK)

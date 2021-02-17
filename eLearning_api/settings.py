@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'elearning_app',
     'corsheaders',
+    'django_filters',
+    'bootstrapform'
 ]
 
 """ REST_FRAMEWORK = {
