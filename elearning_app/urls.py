@@ -21,5 +21,6 @@ urlpatterns = [
     path('getExamCourse/<str:pk>/', views.getExamCourse, name='getExamCourse'),
     path('getCourses/', views.getCourses, name='getCourses'),
     path('getCourse/<str:pk>/', views.getCourse, name='getCourse'),
+    path('getSubjectClass/<str:pk>/', views.getSubjectClass, name='getSubjectClass'),
     
 ]

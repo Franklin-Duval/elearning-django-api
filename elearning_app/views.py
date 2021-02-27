@@ -155,9 +155,38 @@ def getExamCourse(request, pk):
     return Response(result, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
+def getSubjectClass(request, pk):
+    """
+        API endpoint to get all subjects of a course
+    """
+    meta = []
+    try:
+        classe = Classe.objects.get(id=pk)
+    except:
+        result = {
+            "status": "FAILED",
+            "message": "Cette salle de classe n'existe pas"
+        }
+        return Response(result)
+
+    courses = Course.objects.filter(level=classe)
+
+    result = []
+    for course in courses:
+        serializer = SubjectSerializer(course.subject)
+        result.append(serializer.data)
+    
+    meta = {
+        "status": "SUCCESS",
+        "result": result
+    }
+    return Response(meta)
+
+
+@api_view(['GET'])
 def getCourses(request):
     """
-        API endpoint to all validated courses of the platform
+        API endpoint to get all validated courses of the platform
     """
     course = Course.objects.filter(validated = True)
 
